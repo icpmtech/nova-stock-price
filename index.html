@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Chart - INTC (Real Data) - TikTok Style</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Lightweight Charts Library via CDN -->
+  <script src="https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    :root {
+      --primary-color: #000000;
+      --secondary-color: #121212;
+      --accent-color: #FF0050; /* Vibrant TikTok pink */
+      --accent-color-2: #00F2EA; /* Vibrant TikTok cyan */
+      --error-color: #F44336;
+      --text-color: #FFFFFF;
+      --background-color: #181818;
+      --border-color: #333333;
+      --shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+      --transition-speed: 0.3s;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--secondary-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: linear-gradient(45deg, var(--accent-color), var(--accent-color-2));
+      padding: 20px;
+      color: var(--text-color);
+      text-align: center;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .content {
+      width: 90%;
+      max-width: 900px;
+      margin: 20px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #symbol-search {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #symbol-search input[type="text"] {
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      width: 250px;
+      background-color: var(--background-color);
+      color: var(--text-color);
+    }
+
+    #symbol-search input[type="text"]::placeholder {
+      color: #bbb;
+    }
+
+    #symbol-search button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(45deg, var(--accent-color), var(--accent-color-2));
+      color: var(--text-color);
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform var(--transition-speed);
+    }
+
+    #symbol-search button:hover {
+      transform: scale(1.05);
+    }
+
+    #search-results {
+      width: 100%;
+      max-width: 900px;
+      background-color: var(--background-color);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      margin-bottom: 20px;
+      overflow: auto;
+      max-height: 200px;
+    }
+
+    .result-item {
+      padding: 10px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background-color var(--transition-speed);
+      color: var(--text-color);
+    }
+
+    .result-item:last-child { border-bottom: none; }
+
+    .result-item:hover {
+      background-color: rgba(255, 0, 80, 0.2);
+      box-shadow: 0 0 10px var(--accent-color);
+    }
+
+    #details-card {
+      width: 100%;
+      max-width: 900px;
+      background-color: var(--background-color);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 20px;
+      display: none;
+      color: var(--text-color);
+    }
+
+    #details-card h3 { margin-top: 0; }
+
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #controls button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(45deg, var(--accent-color), var(--accent-color-2));
+      color: var(--text-color);
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform var(--transition-speed);
+    }
+
+    #controls button:hover {
+      transform: scale(1.05);
+    }
+
+    #update-info {
+      font-size: 14px;
+      margin-bottom: 20px;
+      transition: opacity var(--transition-speed);
+    }
+
+    #chart-container {
+      width: 100%;
+      height: 400px;
+      background-color: var(--background-color);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 0 15px var(--accent-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.2em; }
+      #symbol-search input[type="text"],
+      #symbol-search button,
+      #controls button { padding: 8px 16px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stock Chart - INTC (Real Data)</h1>
+  </header>
+
+  <div class="content">
+    <!-- Search section with autocomplete -->
+    <div id="symbol-search">
+      <input type="text" id="search-input" placeholder="Enter symbol or keyword" value="intc">
+      <button id="search-button">Search</button>
+    </div>
+    <!-- Autocomplete results list -->
+    <div id="search-results"></div>
+    <!-- Asset details card -->
+    <div id="details-card"></div>
+    
+    <!-- Chart controls -->
+    <div id="controls">
+      <button id="toggle-updates">Pause Updates</button>
+      <button id="reset-zoom">Reset Zoom</button>
+      <button id="switch-chart-type">Switch Chart Type</button>
+      <button id="export-chart">Export Chart</button>
+    </div>
+    <div id="update-info">Last updated: --</div>
+    <div id="chart-container"></div>
+  </div>
+
+  <script>
+    // Global variables
+    let lastDataPoint = { time: '2025-02-27', open: 23.50, high: 23.90, low: 23.30, close: 23.70 };
+    let currentSeriesType = 'candlestick';
+    let currentSymbol = 'intc';
+
+    // Element selections
+    const chartContainer = document.getElementById('chart-container');
+    const updateInfo = document.getElementById('update-info');
+    const toggleButton = document.getElementById('toggle-updates');
+    const resetZoomButton = document.getElementById('reset-zoom');
+    const switchChartTypeButton = document.getElementById('switch-chart-type');
+    const exportChartButton = document.getElementById('export-chart');
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    const searchResultsContainer = document.getElementById('search-results');
+    const detailsCard = document.getElementById('details-card');
+
+    // Create the chart with advanced settings (Dark theme)
+    const chart = LightweightCharts.createChart(chartContainer, {
+      width: chartContainer.clientWidth,
+      height: chartContainer.clientHeight,
+      layout: { backgroundColor: '#181818', textColor: '#FFFFFF' },
+      grid: {
+        vertLines: { color: '#333333' },
+        horzLines: { color: '#333333' }
+      },
+      timeScale: { borderColor: '#333333', timeVisible: true, secondsVisible: true },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor: '#333333' },
+      handleScroll: true,
+      handleScale: true,
+    });
+
+    // Function to create series based on type
+    function createSeries(type) {
+      if (type === 'candlestick') {
+        return chart.addCandlestickSeries({
+          upColor: '#4CAF50',
+          downColor: '#F44336',
+          borderDownColor: '#F44336',
+          borderUpColor: '#4CAF50',
+          wickDownColor: '#F44336',
+          wickUpColor: '#4CAF50'
+        });
+      } else if (type === 'line') {
+        return chart.addLineSeries({
+          color: '#4CAF50',
+          lineWidth: 2,
+        });
+      }
+    }
+
+    // Create initial series with dummy data
+    let currentSeries = createSeries(currentSeriesType);
+    if (currentSeriesType === 'candlestick') {
+      currentSeries.setData([lastDataPoint]);
+    } else {
+      currentSeries.setData([{ time: lastDataPoint.time, value: lastDataPoint.close }]);
+    }
+
+    // Debounce function for optimizing resize and search
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    window.addEventListener('resize', debounce(() => {
+      chart.applyOptions({
+        width: chartContainer.clientWidth,
+        height: chartContainer.clientHeight,
+      });
+    }, 200));
+
+    chart.timeScale().fitContent();
+
+    let isUpdating = true;
+    let updateIntervalId = setInterval(updateChartData, 60000); // Update every 60 seconds
+
+    // Function to fetch API data and update the chart
+    async function updateChartData() {
+      try {
+        const response = await fetch(`https://marketanalyticshubapp.azurewebsites.net/api/YahooFinance/chart-real-time-symbol/${currentSymbol}/1m`);
+        const data = await response.json();
+        const timeInSeconds = Math.floor(new Date(data.timestamp).getTime() / 1000);
+        lastDataPoint = { time: timeInSeconds, open: data.open, high: data.high, low: data.low, close: data.close };
+
+        if (currentSeriesType === 'candlestick') {
+          currentSeries.update(lastDataPoint);
+        } else {
+          currentSeries.update({ time: timeInSeconds, value: data.close });
+        }
+        chart.timeScale().fitContent();
+
+        updateInfo.style.opacity = '0';
+        setTimeout(() => {
+          updateInfo.innerText = 'Last updated: ' + new Date().toLocaleString('en-US');
+          updateInfo.style.opacity = '1';
+        }, 200);
+      } catch (error) {
+        console.error('Error fetching API data:', error);
+        updateInfo.innerText = 'Error updating data';
+      }
+    }
+
+    // Chart control button events
+    toggleButton.addEventListener('click', () => {
+      if (isUpdating) {
+        clearInterval(updateIntervalId);
+        toggleButton.innerText = 'Resume Updates';
+      } else {
+        updateChartData();
+        updateIntervalId = setInterval(updateChartData, 60000);
+        toggleButton.innerText = 'Pause Updates';
+      }
+      isUpdating = !isUpdating;
+    });
+
+    resetZoomButton.addEventListener('click', () => { chart.timeScale().fitContent(); });
+
+    switchChartTypeButton.addEventListener('click', () => {
+      chart.removeSeries(currentSeries);
+      if (currentSeriesType === 'candlestick') {
+        currentSeriesType = 'line';
+        currentSeries = createSeries(currentSeriesType);
+        currentSeries.setData([{ time: lastDataPoint.time, value: lastDataPoint.close }]);
+        switchChartTypeButton.innerText = 'Switch to Candlestick';
+      } else {
+        currentSeriesType = 'candlestick';
+        currentSeries = createSeries(currentSeriesType);
+        currentSeries.setData([lastDataPoint]);
+        switchChartTypeButton.innerText = 'Switch to Line';
+      }
+      chart.timeScale().fitContent();
+    });
+
+    exportChartButton.addEventListener('click', () => {
+      const canvases = chartContainer.getElementsByTagName('canvas');
+      if (canvases.length > 0) {
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = chartContainer.clientWidth;
+        exportCanvas.height = chartContainer.clientHeight;
+        const exportCtx = exportCanvas.getContext('2d');
+        for (let canvas of canvases) {
+          exportCtx.drawImage(canvas, 0, 0);
+        }
+        const dataURL = exportCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = 'chart.png';
+        link.click();
+      }
+    });
+
+    // Function to fetch symbol search results via API endpoint
+    async function searchSymbols(query) {
+      try {
+        const response = await fetch(`https://marketanalyticshubapp.azurewebsites.net/api/YahooFinance/search/${encodeURIComponent(query)}`);
+        const results = await response.json();
+        return results;
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+        return [];
+      }
+    }
+
+    // Function to display asset details in a card
+    function displayDetailsCard(item) {
+      detailsCard.style.display = 'block';
+      detailsCard.innerHTML = `
+        <h3>${item.symbol} - ${item.longname || item.shortname}</h3>
+        <p><strong>Exchange:</strong> ${item.exchDisp || item.exchange}</p>
+        <p><strong>Type:</strong> ${item.quoteType} ${item.typeDisp ? '(' + item.typeDisp + ')' : ''}</p>
+        <p><strong>Sector:</strong> ${item.sector || 'N/A'}</p>
+        <p><strong>Industry:</strong> ${item.industry || 'N/A'}</p>
+      `;
+    }
+
+    // Function to display autocomplete results
+    function displaySearchResults(results) {
+      searchResultsContainer.innerHTML = '';
+      if (results.length === 0) {
+        searchResultsContainer.innerHTML = '<div class="result-item">No results found.</div>';
+        return;
+      }
+      results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerText = `${item.symbol} - ${item.longname || item.shortname}`;
+        div.addEventListener('click', () => {
+          currentSymbol = item.symbol.toLowerCase();
+          document.querySelector('header h1').innerText = `Stock Chart - ${item.symbol.toUpperCase()} (Real Data)`;
+          chart.removeSeries(currentSeries);
+          currentSeries = createSeries(currentSeriesType);
+          updateChartData();
+          displayDetailsCard(item);
+          searchResultsContainer.innerHTML = '';
+          searchInput.value = item.symbol;
+        });
+        searchResultsContainer.appendChild(div);
+      });
+    }
+
+    // Event for search button (optional)
+    searchButton.addEventListener('click', async () => {
+      const query = searchInput.value.trim();
+      if (query) {
+        const results = await searchSymbols(query);
+        displaySearchResults(results);
+      }
+    });
+
+    // Autocomplete event: fetch and display results as user types
+    searchInput.addEventListener('input', debounce(async () => {
+      const query = searchInput.value.trim();
+      if (query) {
+        const results = await searchSymbols(query);
+        displaySearchResults(results);
+      } else {
+        searchResultsContainer.innerHTML = '';
+      }
+    }, 300));
+  </script>
+</body>
+</html>
